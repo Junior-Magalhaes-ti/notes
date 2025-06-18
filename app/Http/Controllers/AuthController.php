@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use Illuminate\Http\Request;
 
 class AuthController extends Controller
@@ -34,11 +35,66 @@ class AuthController extends Controller
         $username = $request->input('text_username');
         $password = $request->input('text_password');
 
-        echo 'ok!';
+        // check if user exists
+        $user = User::where('username', $username)
+            ->where('deleted_at', NULL)
+            ->first();
+
+        if (!$user) {
+            return redirect()->back()->withInput()->with('loginError', 'Username ou Password incorretos');
+        }
+
+        // check if password is correct
+        if (!password_verify($password, $user->password)) {
+            return redirect()->back()->withInput()->with('loginError', 'Username ou Password incorretos');
+        }
+
+        // update last_login
+        $user->last_login = date('Y-m-d H:i:s');
+        $user->save();
+
+
+        // login user
+        session([
+            'user' => [
+                'id' => $user->id,
+                'username' => $user->username
+            ]
+
+        ]);
+
+        //redirect to home
+        return redirect('/');
+
+        
+
+
+        //bd test connection
+        // try {
+        //     DB::connection()->getPdo();
+        //     echo "Connection Sucess";
+        // } catch (\PDOException $e) {
+        //     echo "Connection Fallied" . $e->getMessage();
+        // }
+
+        //get all users bd
+        // $users = User::all()->toArray();
+        // echo '<pre>';
+        // var_dump($users);
+
+        //objetcs view
+        // $userModel = new User();
+        // $users = $userModel->all()->toArray();
+        // echo '<pre>';
+        // print_r($users);
+
     }
 
     public function logout()
     {
-        echo 'logout';
+       // logout 
+
+       session()->forget('user');
+       return redirect('login');
     }
 }
